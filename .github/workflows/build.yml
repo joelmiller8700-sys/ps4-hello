@@ -5,14 +5,23 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ps4dev/ps4sdk:latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Compile C++ Code
+      - name: Install Dependencies
         run: |
-          echo "Preparing PS4 Environment..."
-          ls -la
+          sudo apt-get update
+          sudo apt-get install -y clang lld wget unzip
+
+      - name: Download OpenOrbis PS4 Toolchain
+        run: |
+          wget -q https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.3/OpenOrbis-PS4-Toolchain-v0.5.3.zip
+          unzip -q OpenOrbis-PS4-Toolchain-v0.5.3.zip -d /opt/OpenOrbis
+          echo "OO_PS4_TOOLCHAIN=/opt/OpenOrbis" >> $GITHUB_ENV
+
+      - name: Test Environment
+        run: |
+          echo "Toolchain path is: $OO_PS4_TOOLCHAIN"
+          ls -la $OO_PS4_TOOLCHAIN

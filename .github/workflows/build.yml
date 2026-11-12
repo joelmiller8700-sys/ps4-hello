@@ -18,66 +18,28 @@ jobs:
       - name: Download OpenOrbis toolchain
         run: |
           curl -sL https://api.github.com/repos/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/latest -o rel.json
-          grep browser_download_url rel.json
           URL=$(grep browser_download_url rel.json | grep -i 'tar.gz' | head -1 | cut -d '"' -f4)
           echo "Downloading: $URL"
           curl -L -o toolchain.tar.gz "$URL"
           mkdir -p toolchain
           tar -xzf toolchain.tar.gz -C toolchain
-          find toolchain -name libkernel.h
 
-      - name: Build ELF
-        run: |
-          H=$(find toolchain -path '*orbis/libkernel.h' | head -1)
-          export OO_PS4_TOOLCHAIN=$PWD/$(dirname $(dirname $(dirname $H)))
-          echo "Toolchain: $OO_PS4_TOOLCHAIN"
-          make
-
-      - name: Build PKG
+      - name: Build official hello_world sample
         run: |
           H=$(find toolchain -path '*orbis/libkernel.h' | head -1)
           export OO_PS4_TOOLCHAIN=$PWD/$(dirname $(dirname $(dirname $H)))
           export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
           export DOTNET_ROLL_FORWARD=Major
-          BIN=$OO_PS4_TOOLCHAIN/bin/linux
-          chmod +x $BIN/* || true
-          mkdir -p pkgwork/sce_sys
-          python3 - <<'EOF'
-          import zlib, struct
-          def chunk(t, d):
-              c = struct.pack('>I', len(d)) + t + d
-              return c + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
-          w = h = 512
-          raw = b''.join(b'\x00' + b'\x20\x60\xc0' * w for _ in range(h))
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('pkgwork/sce_sys/icon0.png', 'wb').write(png)
-          EOF
-          cp hello.elf pkgwork/
-          cd pkgwork
-          $BIN/create-fself -in=hello.elf -out=hello.oelf --eboot eboot.bin --paid 0x3800000000000011
-          $BIN/PkgTool.Core sfo_new sce_sys/param.sfo
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo APP_TYPE --type Integer --maxsize 4 --value 0
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo APP_VER --type Utf8 --maxsize 8 --value '01.00'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo ATTRIBUTE --type Integer --maxsize 4 --value 0
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo CATEGORY --type Utf8 --maxsize 4 --value 'gd'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo CONTENT_ID --type Utf8 --maxsize 48 --value 'IV0000-BREW00000_00-HELLOWORLD000000'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo FORMAT --type Utf8 --maxsize 4 --value 'obs'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo PARENTAL_LEVEL --type Integer --maxsize 4 --value 1
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo PUBTOOLINFO --type Utf8 --maxsize 512 --value 'c_date=20240101,sdk_ver=05050000,img0_l0_size=0,img0_l1_size=0,img0_sc_ksize=512,img0_pc_ksize=576'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo SYSTEM_VER --type Integer --maxsize 4 --value 0
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo TITLE --type Utf8 --maxsize 128 --value 'Hello'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo TITLE_ID --type Utf8 --maxsize 12 --value 'BREW00000'
-          $BIN/PkgTool.Core sfo_setentry sce_sys/param.sfo VERSION --type Utf8 --maxsize 8 --value '01.00'
-          $BIN/create-gp4 -out pkg.gp4 --content-id=IV0000-BREW00000_00-HELLOWORLD000000 --files "eboot.bin sce_sys/icon0.png sce_sys/param.sfo"
-          $BIN/PkgTool.Core pkg_build pkg.gp4 .
-          ls -la
+          chmod +x $OO_PS4_TOOLCHAIN/bin/linux/* || true
+          ls $OO_PS4_TOOLCHAIN/samples
+          cp -r $OO_PS4_TOOLCHAIN/samples/hello_world sample
+          cd sample
+          make
+          find . -name '*.pkg'
 
       - name: Upload result
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: hello-build
-          path: |
-            *.elf
-            pkgwork/*.pkg
+          path: sample/**/*.pkg

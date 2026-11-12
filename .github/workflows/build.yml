@@ -17,14 +17,20 @@ jobs:
 
       - name: Download OpenOrbis toolchain
         run: |
-          curl -L -o toolchain.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/latest/download/OpenOrbis.tar.gz
+          curl -sL https://api.github.com/repos/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/latest -o rel.json
+          grep browser_download_url rel.json
+          URL=$(grep browser_download_url rel.json | grep -i 'tar.gz' | head -1 | cut -d '"' -f4)
+          echo "Downloading: $URL"
+          curl -L -o toolchain.tar.gz "$URL"
           mkdir -p toolchain
-          tar -xzf toolchain.tar.gz -C toolchain || true
-          ls -R toolchain | head -50
+          tar -xzf toolchain.tar.gz -C toolchain
+          find toolchain -name libkernel.h
 
       - name: Build ELF
         run: |
-          export OO_PS4_TOOLCHAIN=$PWD/toolchain/OpenOrbis/PS4Toolchain
+          H=$(find toolchain -path '*orbis/libkernel.h' | head -1)
+          export OO_PS4_TOOLCHAIN=$PWD/$(dirname $(dirname $(dirname $H)))
+          echo "Toolchain: $OO_PS4_TOOLCHAIN"
           make
 
       - name: Upload result

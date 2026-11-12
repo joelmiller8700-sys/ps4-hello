@@ -1,24 +1,68 @@
-#include <orbis/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <orbis/libkernel.h>
-#include <orbis/pad.h>
+#include <orbis/Pad.h>
+#include <orbis/UserService.h>
 
-int buttonHoldTimer = 0;
-bool isMenuOpen = false;
+// إعدادات القائمة
+int holdTimer = 0;
+bool menuVisible = false;
+int selectedOption = 0; // 0 = 20 FPS, 1 = 25 FPS, 2 = 40 FPS
+int fpsValues[3] = {20, 25, 40};
+int currentFPS = 30;
 
-void CheckControllerInput() {
+int main(void) {
+    // تهيئة خدمة المستخدم ويد التحكم
+    sceUserServiceInitialize(NULL);
+    scePadInit();
+
+    OrbisUserServiceUserId userId;
+    sceUserServiceGetInitialUser(&userId);
+    int padHandle = scePadOpen(userId, 0, 0, NULL);
+
     OrbisPadData padData;
-    if (scePadReadState(0, &padData) == 0) {
-        bool l1Pressed = (padData.buttons & ORBIS_PAD_BUTTON_L1) != 0;
-        bool r1Pressed = (padData.buttons & ORBIS_PAD_BUTTON_R1) != 0;
+    uint32_t prevButtons = 0;
 
-        if (l1Pressed && r1Pressed) {
-            buttonHoldTimer++;
-            if (buttonHoldTimer >= 120 && !isMenuOpen) {
-                isMenuOpen = true;
-                buttonHoldTimer = 0;
+    // الحلقة الرئيسية للتطبيق
+    while (1) {
+        if (scePadReadState(padHandle, &padData) == 0) {
+            bool l1 = (padData.buttons & ORBIS_PAD_BUTTON_L1) != 0;
+            bool r1 = (padData.buttons & ORBIS_PAD_BUTTON_R1) != 0;
+
+            // فحص الضغط المستمر على L1 + R1 لمدة ثانيتين (حوالي 120 دورة)
+            if (l1 && r1) {
+                holdTimer++;
+                if (holdTimer >= 120) {
+                    menuVisible = !menuVisible; // فتح أو إغلاق القائمة
+                    holdTimer = 0;
+                }
+            } else {
+                holdTimer = 0;
             }
-        } else {
-            buttonHoldTimer = 0;
+
+            // التحكم داخل القائمة إذا كانت مفتوحة
+            if (menuVisible) {
+                // زر السهم للأسفل
+                if ((padData.buttons & ORBIS_PAD_BUTTON_DOWN) && !(prevButtons & ORBIS_PAD_BUTTON_DOWN)) {
+                    selectedOption = (selectedOption + 1) % 3;
+                }
+                // زر السهم للأعلى
+                if ((padData.buttons & ORBIS_PAD_BUTTON_UP) && !(prevButtons & ORBIS_PAD_BUTTON_UP)) {
+                    selectedOption = (selectedOption + 2) % 3;
+                }
+                // زر X لتأكيد اختيار الإطارات
+                if ((padData.buttons & ORBIS_PAD_BUTTON_CROSS) && !(prevButtons & ORBIS_PAD_BUTTON_CROSS)) {
+                    currentFPS = fpsValues[selectedOption];
+                }
+            }
+            prevButtons = padData.buttons;
         }
+
+        // تأخير بسيط لمحاكاة معدل الإطارات المختار
+        usleep(1000000 / currentFPS);
     }
+
+    return 0;
 }

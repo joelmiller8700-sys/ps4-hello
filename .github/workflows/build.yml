@@ -1,0 +1,36 @@
+name: Build PS4 app
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+
+      - name: Download OpenOrbis toolchain
+        run: |
+          curl -L -o toolchain.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/latest/download/OpenOrbis.tar.gz
+          mkdir -p toolchain
+          tar -xzf toolchain.tar.gz -C toolchain || true
+          ls -R toolchain | head -50
+
+      - name: Build ELF
+        run: |
+          export OO_PS4_TOOLCHAIN=$PWD/toolchain/OpenOrbis/PS4Toolchain
+          make
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: hello-build
+          path: |
+            *.elf
+            *.o

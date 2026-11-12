@@ -16,8 +16,10 @@ jobs:
           sudo apt-get install -y clang lld wget tar
 
       - name: Download OpenOrbis PS4 Toolchain
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          wget -O toolchain.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.3/OpenOrbis-PS4-Toolchain-v0.5.3.tar.gz
+          gh release download --repo OpenOrbis/OpenOrbis-PS4-Toolchain --pattern "*linux*.tar.gz" -O toolchain.tar.gz || gh release download --repo OpenOrbis/OpenOrbis-PS4-Toolchain --pattern "*.tar.gz" -O toolchain.tar.gz
           sudo mkdir -p /opt/OpenOrbis
           sudo tar -xzf toolchain.tar.gz -C /opt/OpenOrbis
           echo "OO_PS4_TOOLCHAIN=/opt/OpenOrbis" >> $GITHUB_ENV

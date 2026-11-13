@@ -1,25 +1,28 @@
-
-name: PS4 Homebrew Build
+name: Build PS4 PKG
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
   push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - '.github/workflows/ps4-build.yml'
+    branches: [ main ]
 
 jobs:
-  toolchain-check:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify OpenOrbis toolchain
+      - name: Build with OpenOrbis Toolchain
         uses: OpenOrbis/toolchain-action@main
         with:
-          version: v0.5.1
-          command: clang --version
+          version: latest
+          command: |
+            cd hello_world
+            make
+            PkgTool.Core pkg_build pkg/pkg.gp4 .
+
+      - name: Upload PKG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS4-Homebrew-PKG
+          path: hello_world/*.pkg

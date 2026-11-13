@@ -1,25 +1,19 @@
 name: Build PS4 PKG
 
 on:
-  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Build with OpenOrbis Toolchain
-        uses: OpenOrbis/toolchain-action@main
-        with:
-          version: latest
-          command: |
-            cd hello_world
-            make
-            PkgTool.Core pkg_build pkg/pkg.gp4 .
+      - name: Build PKG in OpenOrbis Docker Container
+        run: |
+          docker run --rm -w /workspace -v "${{ github.workspace }}":/workspace openorbisofficial/toolchain:latest bash -c "cd hello_world && make && PkgTool.Core pkg_build pkg/pkg.gp4 ."
 
       - name: Upload PKG Artifact
         uses: actions/upload-artifact@v4

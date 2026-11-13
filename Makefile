@@ -8,7 +8,7 @@ CC          := clang++
 LD          := ld.lld
 CDIR        := $(TOOLCHAIN)/bin/linux
 
-CFLAGS      := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -I$(INCLUDEDIR) -I$(INCLUDEDIR)/c++/v1 -O2 -Wall
+CFLAGS      := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -nostdinc -nostdinc++ -I$(INCLUDEDIR) -I$(INCLUDEDIR)/c++/v1 -O2 -Wall
 LDFLAGS     := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr -L$(LIBDIR) -lc -lkernel -lc++ -lScePad -lSceUserService
 
 CFILES      := $(wildcard *.cpp)

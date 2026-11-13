@@ -1,0 +1,25 @@
+
+name: PS4 Homebrew Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/ps4-build.yml'
+
+jobs:
+  toolchain-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify OpenOrbis toolchain
+        uses: OpenOrbis/toolchain-action@main
+        with:
+          version: v0.5.1
+          command: clang --version

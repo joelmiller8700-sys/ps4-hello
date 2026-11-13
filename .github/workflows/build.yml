@@ -16,12 +16,13 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-14 lld-14 llvm-14 make wget unzip tar
+          sudo apt-get install -y clang-12 lld-12 llvm-12 make wget curl jq tar
 
       - name: Download and Setup OpenOrbis PS4 Toolchain
         run: |
-          mkdir -p /opt/OpenOrbis/PS4Toolchain
-          wget -q https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.3/toolchain-llvm-14.tar.gz -O toolchain.tar.gz
+          sudo mkdir -p /opt/OpenOrbis/PS4Toolchain
+          sudo chmod -R 777 /opt/OpenOrbis
+          wget -q https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/toolchain-llvm-12.tar.gz -O toolchain.tar.gz
           tar -xzf toolchain.tar.gz -C /opt/OpenOrbis/PS4Toolchain
           rm toolchain.tar.gz
 
@@ -29,9 +30,14 @@ jobs:
         env:
           OO_PS4_TOOLCHAIN: /opt/OpenOrbis/PS4Toolchain
         run: |
-          make
+          if [ -f "Makefile" ]; then
+            make
+          else
+            echo "Toolchain is ready! Waiting for Makefile and source code..."
+          fi
 
       - name: Upload Final PKG Artifact
+        if: hashFiles('*.pkg') != ''
         uses: actions/upload-artifact@v4
         with:
           name: PS4-FPS-Manager-PKG

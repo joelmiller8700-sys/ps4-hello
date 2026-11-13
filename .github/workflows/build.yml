@@ -1,0 +1,49 @@
+name: Build PS4 PKG
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld wget tar make
+
+      - name: Download Toolchain
+        run: |
+          wget -O toolchain.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/OpenOrbis-PS4-Toolchain-v0.5.2.tar.gz
+          sudo mkdir -p /opt/OpenOrbis
+          sudo tar -xzf toolchain.tar.gz -C /opt/OpenOrbis --strip-components=1
+          echo "OO_PS4_TOOLCHAIN=/opt/OpenOrbis" >> $GITHUB_ENV
+
+      - name: Build EBOOT
+        run: make
+
+      - name: Build PKG
+        run: |
+          mkdir -p pkg/sce_sys
+          cp eboot.bin pkg/
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_new pkg/sce_sys/param.sfo
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo APP_TYPE --type Integer --maxsize 4 --value 1
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo APP_VER --type Utf8 --maxsize 8 --value "01.00"
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo CATEGORY --type Utf8 --maxsize 4 --value "gd"
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo CONTENT_ID --type Utf8 --maxsize 48 --value "IV0000-BREW00001_00-FPSMENU000000000"
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo TITLE --type Utf8 --maxsize 128 --value "FPS Menu"
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo TITLE_ID --type Utf8 --maxsize 12 --value "BREW00001"
+          /opt/OpenOrbis/bin/linux/PkgTool.Core sfo_setentry pkg/sce_sys/param.sfo VERSION --type Utf8 --maxsize 8 --value "01.00"
+          
+          /opt/OpenOrbis/bin/linux/PkgTool.Core gp4_new pkg/project.gp4
+          /opt/OpenOrbis/bin/linux/PkgTool.Core gp4_proj_update --volume_type pkg_ps4_app --content_id IV0000-BREW00001_00-FPSMENU000000000 --passcode 00000000000000000000000000000000 pkg/project.gp4
+          /opt/OpenOrbis/bin/linux/PkgTool.Core gp4_file_add eboot.bin eboot.bin pkg/project.gp4
+          /opt/OpenOrbis/bin/linux/PkgTool.Core gp4_file_add sce_sys/param.sfo sce_sys/param.sfo pkg/project.gp4
+          /opt/OpenOrbis/bin/linux/PkgTool.Core pkg_build pkg/project.gp4 .
+
+      - name: Upload PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: FPS-Menu-PKG
+          path: "*.pkg"

@@ -1,0 +1,38 @@
+name: Build PS4 PKG
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-14 lld-14 llvm-14 make wget unzip tar
+
+      - name: Download and Setup OpenOrbis PS4 Toolchain
+        run: |
+          mkdir -p /opt/OpenOrbis/PS4Toolchain
+          wget -q https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.3/toolchain-llvm-14.tar.gz -O toolchain.tar.gz
+          tar -xzf toolchain.tar.gz -C /opt/OpenOrbis/PS4Toolchain
+          rm toolchain.tar.gz
+
+      - name: Build EBOOT and PKG
+        env:
+          OO_PS4_TOOLCHAIN: /opt/OpenOrbis/PS4Toolchain
+        run: |
+          make
+
+      - name: Upload Final PKG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS4-FPS-Manager-PKG
+          path: "*.pkg"

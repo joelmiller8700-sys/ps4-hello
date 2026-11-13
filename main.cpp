@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <orbis/libkernel.h>
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
@@ -44,15 +40,12 @@ int main(void) {
 
             // التحكم داخل القائمة إذا كانت مفتوحة
             if (menuVisible) {
-                // زر السهم للأسفل
                 if ((padData.buttons & ORBIS_PAD_BUTTON_DOWN) && !(prevButtons & ORBIS_PAD_BUTTON_DOWN)) {
                     selectedOption = (selectedOption + 1) % 3;
                 }
-                // زر السهم للأعلى
                 if ((padData.buttons & ORBIS_PAD_BUTTON_UP) && !(prevButtons & ORBIS_PAD_BUTTON_UP)) {
                     selectedOption = (selectedOption + 2) % 3;
                 }
-                // زر X لتأكيد اختيار الإطارات
                 if ((padData.buttons & ORBIS_PAD_BUTTON_CROSS) && !(prevButtons & ORBIS_PAD_BUTTON_CROSS)) {
                     currentFPS = fpsValues[selectedOption];
                 }
@@ -61,7 +54,7 @@ int main(void) {
         }
 
         // تأخير بسيط لمحاكاة معدل الإطارات المختار
-        usleep(1000000 / currentFPS);
+        sceKernelUsleep(1000000 / currentFPS);
     }
 
     return 0;

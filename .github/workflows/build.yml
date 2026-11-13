@@ -1,0 +1,24 @@
+name: Build PS4 PKG
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build with OpenOrbis Toolchain (Docker)
+        uses: docker://openorbisofficial/toolchain:latest
+        with:
+          args: bash -c "cd hello_world && make && PkgTool.Core pkg_build pkg/pkg.gp4 ."
+
+      - name: Upload PKG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS4-Homebrew-PKG
+          path: hello_world/*.pkg
